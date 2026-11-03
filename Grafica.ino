@@ -1,5 +1,6 @@
 #include "config.h"
 
+// Draw interactive control sidebar buttons aligned from Y=0 with consistent functional color coding
 void drawSidebar() {
   BSP_LCD_SetTextColor(0xFF333333);
   BSP_LCD_FillRect(400, 0, 80, 272);

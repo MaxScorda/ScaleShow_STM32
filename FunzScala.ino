@@ -5,6 +5,7 @@ extern int16_t bounceY;
 extern int8_t speedX;
 extern int8_t speedY;
 
+// Draw complete user interface layout on LCD screen
 void drawUI() {
   BSP_LCD_Clear(LCD_COLOR_BLACK);
   drawHeader();
@@ -13,6 +14,7 @@ void drawUI() {
   drawSidebar();
 }
 
+// Render top header bar showing scale name, root note and mute status
 void drawHeader() {
   BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
   BSP_LCD_FillRect(0, 0, 399, 35);
@@ -34,10 +36,12 @@ void drawHeader() {
   }
 }
 
+// Render main musical scale section with reverse green headers and adaptive fonts
 void drawScaleSection() {
   BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
   BSP_LCD_FillRect(0, 36, 399, 138);
 
+  // Alphabetical section header banner in reverse green
   BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
   BSP_LCD_FillRect(5, 40, 390, 20);
 
@@ -57,6 +61,7 @@ void drawScaleSection() {
     if (i < n - 1) strcat(noteBuf, " ");
   }
 
+  // Adaptive font scaling for alphabetical note string
   if (scaleIdx == 8 || strlen(noteBuf) > 26) {
     BSP_LCD_SetFont(&Font16);
   } else if (strlen(noteBuf) > 20) {
@@ -66,6 +71,7 @@ void drawScaleSection() {
   }
   BSP_LCD_DisplayStringAt(10, 68, (uint8_t*)noteBuf, LEFT_MODE);
 
+  // Solfege section header banner in reverse green
   BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
   BSP_LCD_FillRect(5, 103, 390, 20);
 
@@ -84,6 +90,7 @@ void drawScaleSection() {
     if (i < n - 1) strcat(solBuf, " ");
   }
 
+  // Adaptive font scaling for solfege string
   if (scaleIdx == 8 || strlen(solBuf) > 30) {
     BSP_LCD_SetFont(&Font12);
   } else if (strlen(solBuf) > 22) {
@@ -97,10 +104,12 @@ void drawScaleSection() {
   BSP_LCD_DrawHLine(0, 174, 399);
 }
 
+// Wrapper function to trigger chord section rendering
 void drawChordSection() {
   printAcc();
 }
 
+// Render chord name and notes with precise interval calculations
 void printAcc() {
   BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
   BSP_LCD_FillRect(0, 175, 399, 96);
@@ -118,7 +127,6 @@ void printAcc() {
   sprintf(chordTitle, "Accordo: %s", cName);
   BSP_LCD_DisplayStringAt(10, 185, (uint8_t*)chordTitle, LEFT_MODE);
 
-  // Calcolo delle note dell'accordo basato su intervalli semitonali effettivi (indipendenti dalla lunghezza della scala)
   char chordNotes[64] = "";
   int cn = 0;
   while (cn < 8) {
@@ -142,27 +150,34 @@ void printAcc() {
   BSP_LCD_DisplayStringAt(10, 218, (uint8_t*)chordNotes, LEFT_MODE);
 }
 
+// Update bouncing screensaver animation frame and render standby text block in English
 void updateScreenSaverBounce() {
   BSP_LCD_Clear(LCD_COLOR_BLACK);
   BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
 
+  // Update position coordinates based on velocity vector
   bounceX += speedX;
   bounceY += speedY;
 
-  if (bounceX < 10 || bounceX > 260) speedX = -speedX;
+  // Bounce off screen borders smoothly
+  if (bounceX < 10 || bounceX > 220) speedX = -speedX;
   if (bounceY < 10 || bounceY > 210) speedY = -speedY;
 
   BSP_LCD_SetFont(&Font16);
   
+  // Line 1: Standby notice
   BSP_LCD_SetTextColor(LCD_COLOR_YELLOW);
   BSP_LCD_DisplayStringAt(bounceX, bounceY, (uint8_t*)"STANDBY (60s)", LEFT_MODE);
 
-  BSP_LCD_SetTextColor(LCD_COLOR_CYAN);
-  BSP_LCD_DisplayStringAt(bounceX, bounceY + 22, (uint8_t*)"(c) ScordaRecords", LEFT_MODE);
-
-  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-  BSP_LCD_DisplayStringAt(bounceX, bounceY + 44, (uint8_t*)"maxscorda@gmail.com", LEFT_MODE);
-
+  // Line 2: Reactivation instruction
   BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-  BSP_LCD_DisplayStringAt(bounceX, bounceY + 66, (uint8_t*)"Touch screen to reactivate", LEFT_MODE);
+  BSP_LCD_DisplayStringAt(bounceX, bounceY + 22, (uint8_t*)"Touch screen to reactivate", LEFT_MODE);
+
+  // Line 3: Software copyright attribution
+  BSP_LCD_SetTextColor(LCD_COLOR_CYAN);
+  BSP_LCD_DisplayStringAt(bounceX, bounceY + 44, (uint8_t*)"(c) ScordaSoftware", LEFT_MODE);
+
+  // Line 4: Developer contact email
+  BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+  BSP_LCD_DisplayStringAt(bounceX, bounceY + 66, (uint8_t*)"maxscorda@gmail.com", LEFT_MODE);
 }

@@ -4,6 +4,7 @@
 int16_t audioBuffer[256];
 bool audioInitialized = false;
 
+// Initialize hardware display layers and audio subsystem safely
 void initDisplay() {
   BSP_LCD_Init();
   BSP_LCD_LayerDefaultInit(0, LCD_FB_START_ADDRESS);
@@ -16,6 +17,7 @@ void initDisplay() {
   }
 }
 
+// Generate and play a sinusoidal tone via audio DMA output
 void playTone(uint16_t frequency, uint16_t durationMs) {
   if (mute || !audioInitialized || frequency == 0) return;
 
@@ -30,6 +32,7 @@ void playTone(uint16_t frequency, uint16_t durationMs) {
   BSP_AUDIO_OUT_Stop(CODEC_PDWN_SW);
 }
 
+// Calculate frequency for specific pitch class and semitone offset
 int toneAt(uint8_t pc, int semis) {
   int nota = pgm_read_word(&allNotes[rootNote]);
   int base = nota;
@@ -42,6 +45,7 @@ int toneAt(uint8_t pc, int semis) {
   return (int)((long)nota * step / base);
 }
 
+// Play full musical scale sequentially note by note
 void playScale() {
   if (mute) return;
   uint8_t n = scaleLen(scaleIdx);
@@ -56,11 +60,14 @@ void playScale() {
   }
 }
 
+// Read touchscreen inputs and dispatch user navigation commands
 void LeggiPulsantiTouch() {
   BSP_TS_GetState(&TS_State);
   if (TS_State.touchDetected) {
+    // Reset inactivity timer on any user touch interaction
     lastActivityTime = millis();
 
+    // Wake up from screen saver standby mode if active
     if (isScreenReversed) {
       isScreenReversed = false;
       drawUI();
@@ -71,6 +78,7 @@ void LeggiPulsantiTouch() {
     uint16_t tx = TS_State.touchX[0];
     uint16_t ty = TS_State.touchY[0];
 
+    // Handle touch actions within sidebar region (X >= 400)
     if (tx >= 400) {
       if (ty >= 0 && ty <= 32) {
         scaleIdx = (scaleIdx + 1) % NUM_SCALES;
@@ -111,24 +119,28 @@ void LeggiPulsantiTouch() {
   }
 }
 
+// Callback triggered when root note changes
 void onRootChanged(uint8_t oldNote) {
   drawHeader();
   drawScaleSection();
   drawChordSection();
 }
 
+// Callback triggered when scale type changes
 void onScaleChanged() {
   drawHeader();
   drawScaleSection();
   drawChordSection();
 }
 
+// Calculate total number of notes present in given scale
 uint8_t scaleLen(uint8_t idx) {
   uint8_t n = 0;
   while (n < 13 && pgm_read_word(&scaleMod[idx][n]) != 99) n++;
   return n;
 }
 
+// Retrieve pitch class for scale degree
 uint8_t scaleNote(uint8_t idx, uint8_t deg) {
   return (rootNote + pgm_read_word(&scaleMod[idx][deg])) % 12;
 }

@@ -3,59 +3,64 @@
 
 #include <Arduino.h>
 
+// Global activity tracking for screen saver timeout
 extern uint32_t lastActivityTime;
 extern bool isScreenReversed;
-const uint32_t INACTIVITY_TIMEOUT = 60000; // 60 secondi
+const uint32_t INACTIVITY_TIMEOUT = 60000; // 60 seconds standby timeout
 
+// Alphabetical note representations (Sharp/Flat context)
 String scoreb[] = {"C", "Db", "D", "Eb",
                    "E", "F", "Gb", "G",
                    "Ab", "A", "Bb", "B"};
 
+// Traditional Solfege representations (Do Re Mi)
 String scoreN[] = {"Do", "Reb", "Re", "Mib",
                    "Mi", "Fa", "Sob", "Sol",
                    "Lab", "La", "Sib", "Si"};
 
+// Base frequency table for notes stored in program memory (PROGMEM)
 const uint16_t allNotes[] PROGMEM = {262, 277, 294, 311,
                                      330, 349, 370, 392,
                                      415, 440, 466, 494};
 
+// Scale modulation offset tables (semitone intervals relative to root note)
 PROGMEM const uint16_t scaleMod[][13] = {
-  {0, 2, 4, 5, 7, 9, 11, 99},                // 0 Maggiore
-  {0, 2, 3, 5, 7, 8, 10, 99},                // 1 Minore
-  {0, 1, 3, 4, 6, 8, 10, 99},                // 2 Alterata
-  {0, 3, 4, 7, 8, 11, 99},                   // 3 Aumentata
-  {0, 2, 4, 5, 7, 9, 10, 11, 99},            // 4 Bebop dom
-  {0, 2, 4, 5, 7, 8, 9, 11, 99},             // 5 Bebop mag
+  {0, 2, 4, 5, 7, 9, 11, 99},                // 0 Major
+  {0, 2, 3, 5, 7, 8, 10, 99},                // 1 Minor
+  {0, 1, 3, 4, 6, 8, 10, 99},                // 2 Altered
+  {0, 3, 4, 7, 8, 11, 99},                   // 3 Augmented
+  {0, 2, 4, 5, 7, 9, 10, 11, 99},            // 4 Bebop dominant
+  {0, 2, 4, 5, 7, 8, 9, 11, 99},             // 5 Bebop major
   {0, 3, 5, 6, 7, 10, 99},                   // 6 Blues
-  {0, 2, 3, 4, 7, 9, 99},                    // 7 Blues mag
-  {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99},// 8 Cromatica
-  {0, 1, 3, 4, 6, 7, 9, 10, 99},             // 9 Dim mezzo
-  {0, 2, 3, 5, 6, 8, 9, 11, 99},             // 10 Diminuita
-  {0, 2, 3, 5, 7, 9, 10, 99},                // 11 Dorico
-  {0, 1, 4, 6, 8, 10, 11, 99},               // 12 Enigmatica
-  {0, 2, 3, 5, 7, 8, 10, 99},                // 13 Eolio
-  {0, 1, 3, 5, 7, 8, 10, 99},                // 14 Frigio
-  {0, 1, 4, 5, 7, 8, 10, 99},                // 15 Frigio Dom
-  {0, 1, 5, 7, 10, 99},                      // 16 Giapponese
+  {0, 2, 3, 4, 7, 9, 99},                    // 7 Blues major
+  {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 99},// 8 Chromatic
+  {0, 1, 3, 4, 6, 7, 9, 10, 99},             // 9 Diminished half
+  {0, 2, 3, 5, 6, 8, 9, 11, 99},             // 10 Diminished whole
+  {0, 2, 3, 5, 7, 9, 10, 99},                // 11 Dorian
+  {0, 1, 4, 6, 8, 10, 11, 99},               // 12 Enigmatic
+  {0, 2, 3, 5, 7, 8, 10, 99},                // 13 Aeolian
+  {0, 1, 3, 5, 7, 8, 10, 99},                // 14 Phrygian
+  {0, 1, 4, 5, 7, 8, 10, 99},                // 15 Phrygian Dominant
+  {0, 1, 5, 7, 10, 99},                      // 16 Japanese
   {0, 2, 3, 7, 8, 99},                       // 17 Hirajoshi
   {0, 1, 5, 6, 10, 99},                      // 18 Iwato
-  {0, 2, 4, 6, 7, 9, 10, 99},                // 19 Lidia dom
-  {0, 2, 4, 6, 7, 9, 11, 99},                // 20 Lidio
-  {0, 1, 3, 5, 6, 8, 10, 99},                // 21 Locrio
-  {0, 2, 4, 5, 7, 8, 11, 99},                // 22 Mag armon
-  {0, 2, 3, 5, 7, 8, 11, 99},                // 23 Min armon
-  {0, 2, 3, 5, 7, 9, 11, 99},                // 24 Min melod
-  {0, 2, 4, 5, 7, 9, 10, 99},                // 25 Misolidio
-  {0, 1, 3, 5, 7, 8, 11, 99},                // 26 Nap minore
-  {0, 1, 3, 5, 7, 9, 11, 99},                // 27 Napoletana
-  {0, 1, 4, 5, 7, 8, 11, 99},                // 28 Orientale
-  {0, 2, 4, 7, 9, 99},                       // 29 Penta mag
-  {0, 3, 5, 7, 10, 99},                      // 30 Penta min
-  {0, 1, 4, 5, 6, 8, 11, 99},                // 31 Persiana
+  {0, 2, 4, 6, 7, 9, 10, 99},                // 19 Lydian Dominant
+  {0, 2, 4, 6, 7, 9, 11, 99},                // 20 Lydian
+  {0, 1, 3, 5, 6, 8, 10, 99},                // 21 Locrian
+  {0, 2, 4, 5, 7, 8, 11, 99},                // 22 Major Harmonic
+  {0, 2, 3, 5, 7, 8, 11, 99},                // 23 Minor Harmonic
+  {0, 2, 3, 5, 7, 9, 11, 99},                // 24 Minor Melodic
+  {0, 2, 4, 5, 7, 9, 10, 99},                // 25 Mixolydian
+  {0, 1, 3, 5, 7, 8, 11, 99},                // 26 Neapolitan Minor
+  {0, 1, 3, 5, 7, 9, 11, 99},                // 27 Neapolitan Major
+  {0, 1, 4, 5, 7, 8, 11, 99},                // 28 Oriental
+  {0, 2, 4, 7, 9, 99},                       // 29 Pentatonic Major
+  {0, 3, 5, 7, 10, 99},                      // 30 Pentatonic Minor
+  {0, 1, 4, 5, 6, 8, 11, 99},                // 31 Persian
   {0, 2, 4, 6, 9, 10, 99},                   // 32 Prometheus
-  {0, 2, 4, 6, 8, 10, 99},                   // 33 Toni interi
-  {0, 2, 3, 6, 7, 8, 11, 99},                // 34 Ungh min
-  {0, 3, 4, 6, 7, 9, 10, 99},                // 35 Ungherese
+  {0, 2, 4, 6, 8, 10, 99},                   // 33 Whole Tone
+  {0, 2, 3, 6, 7, 8, 11, 99},                // 34 Hungarian Minor
+  {0, 3, 4, 6, 7, 9, 10, 99},                // 35 Hungarian Major
 };
 
 const char scaleNames[][12] PROGMEM = {
@@ -76,17 +81,16 @@ const char chordNames[][12] PROGMEM = {
   "Sus4", "7sus4", "5a aum", "Dim"
 };
 
-// Formule accordi basate su intervalli semitonali effettivi rispetto alla fondamentale (Root),
-// garantendo che siano sempre corretti indipendentemente dalla scala selezionata!
+// Absolute semitone interval formulas for precise chord calculations
 PROGMEM const int8_t chordIntervals[][9] = {
   {99},
-  {0, 3, 7, 99},          // 1 Maj/Min (0, 3, 7 -> fondamentale, terza min, quinta) o Maj (0,4,7)
-  {0, 4, 7, 9, 99},       // 2 Sesta (1, 3, 5, 6)
+  {0, 3, 7, 99},          // 1 Maj/Min
+  {0, 4, 7, 9, 99},       // 2 Sesta
   {0, 4, 7, 9, 14, 99},   // 3 6/9
-  {0, 4, 7, 11, 99},      // 4 7a Magg (Maj7: 0, 4, 7, 11)
-  {0, 3, 7, 11, 99},      // 5 Min 7a Mag (mMaj7: 0, 3, 7, 11)
-  {0, 4, 7, 10, 99},      // 6 Settima (7: 0, 4, 7, 10)
-  {0, 3, 7, 10, 99},      // 7 Minore 7a (m7: 0, 3, 7, 10)
+  {0, 4, 7, 11, 99},      // 4 7a Magg
+  {0, 3, 7, 11, 99},      // 5 Min 7a Mag
+  {0, 4, 7, 10, 99},      // 6 Settima
+  {0, 3, 7, 10, 99},      // 7 Minore 7a
   {0, 3, 6, 9, 99},       // 8 Dim7
   {0, 3, 6, 10, 99},      // 9 m7b5
   {0, 4, 7, 10, 14, 99},  // 10 9a Agg
